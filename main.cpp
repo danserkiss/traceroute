@@ -29,22 +29,35 @@ int main(int argc, char *argv[])
     icmp_heder->checksum = checksum(icmp_heder, sizeof(packet));
  
     socklen_t destlen=sizeof(dest); 
-    sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
-    printf("icmp echo sent to %s\n",argv[1]);
+  
+  
  
     char buf[1024];
     struct sockaddr_in from;
     socklen_t fromlen=sizeof(from);
- 
-    if (recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen)!=-1)
-    {
-        printf("recived reply from %s\n",inet_ntoa(from.sin_addr));
-    }
-    else
-    {
-        printf("Error reciving ICMP reply\n");
-    }
 
+    int max_hops=64;
+    int ttl=1;
+    
+    printf("icmp echo sent to %s\n",argv[1]);
+    while(ttl<=max_hops)
+    {
+        setsockopt(sockfd,IPPROTO_IP,IP_TTL,&ttl,sizeof(ttl));
+        sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
+        if (recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen)!=-1)
+        {
+            printf("recived reply from %s\n",inet_ntoa(from.sin_addr));
+        }
+        else
+        {
+            printf("Error reciving ICMP reply\n");
+        }
+        ttl++;
+        if(from.sin_addr.s_addr==dest.sin_addr.s_addr)
+        {
+            break;
+        }
+    }
     close(sockfd);
     return 0;
 }
