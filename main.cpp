@@ -5,6 +5,8 @@
 #include <string.h>
 #include <netinet/ip_icmp.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <stdlib.h>
 
 unsigned short checksum(void *, int);
 
@@ -30,23 +32,35 @@ int main(int argc, char *argv[])
  
     socklen_t destlen=sizeof(dest); 
   
-  
- 
     char buf[1024];
     struct sockaddr_in from;
-    socklen_t fromlen=sizeof(from);
+    socklen_t fromlen=sizeof(sockaddr_in);
 
     int max_hops=64;
     int ttl=1;
+    hostent * temp;
     
+
     printf("icmp echo sent to %s\n",argv[1]);
     while(ttl<=max_hops)
     {
         setsockopt(sockfd,IPPROTO_IP,IP_TTL,&ttl,sizeof(ttl));
         sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
+        
         if (recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen)!=-1)
         {
-            printf("recived reply from %s\n",inet_ntoa(from.sin_addr));
+            char * temp_ip=inet_ntoa(from.sin_addr);
+            char* domain=(char*)malloc(30*sizeof(char));
+            temp=gethostbyaddr(&from.sin_addr,sizeof(in_addr),AF_INET);
+            if(temp!=NULL)
+            {
+                domain=temp->h_name;
+            }
+            else
+            {
+                domain="unknown";
+            }
+            printf("recived reply from : %-16s domain : %-30s\n",temp_ip,domain);
         }
         else
         {
@@ -57,6 +71,7 @@ int main(int argc, char *argv[])
         {
             break;
         }
+   
     }
     close(sockfd);
     return 0;
