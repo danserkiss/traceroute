@@ -1,26 +1,68 @@
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <netinet/ip_icmp.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <stdlib.h>
-
-unsigned short checksum(void *, int);
+#include "header.h"
 
 int main(int argc, char *argv[])
 {
-    int sockfd = socket(AF_INET,SOCK_RAW,IPPROTO_ICMP);  
+    int j,max_hops=DEFAULT_MAX_HOPS;
+    char *domain_name,*ip=NULL;
+    while ((j=getopt(argc,argv,"d:i:m:"))!=-1)
+    {
+        switch (j)
+        {
+            case '?':
+                printf("unknown option\n");
+                exit(1);
+                break;
+            case ':':
+                printf("You must enter some value for option %c",optopt);
+                exit(1);
+                break;
+            case 'm':
+                max_hops = atoi(optarg);
+                break;
+            case 'd':
+                domain_name=optarg;
+                if(gethostbyname(domain_name)==NULL)
+                {
+                    printf("Unkown domain name!\n");
+                    exit(1);
+                }
+                else
+                {
+                    ip=inet_ntoa(*(in_addr*)gethostbyname(domain_name)->h_addr);
+                }
+                break;
+            case 'i':
+                ip=optarg;
+                break;
 
-    char packet[1024];
+        }
+    }
+    
+    if(ip==NULL)
+    {
+        printf("You should enter ip address ,using option '-i'\n");
+        exit(1);
+    }
+
+    int sockfd = socket(AF_INET,SOCK_RAW,IPPROTO_ICMP);  
+    if(sockfd==-1)
+    {
+        printf("Failed creating socket \n");
+        exit(1);
+    }
+
+    void *packet=malloc(sizeof(icmphdr));
+    if (packet==NULL)
+    {
+        printf("Error allocating memory for packet\n");
+        exit(1);
+    }
     struct sockaddr_in dest;
     struct icmphdr *icmp_heder = (struct icmphdr *)packet;
 
     memset(&dest,0,sizeof(dest));
     dest.sin_family=AF_INET;
-    dest.sin_addr.s_addr=inet_addr(argv[1]);
+    dest.sin_addr.s_addr=inet_addr(ip);
 
     memset(packet,0,sizeof(packet));
     icmp_heder->type=ICMP_ECHO;
@@ -32,40 +74,45 @@ int main(int argc, char *argv[])
  
     socklen_t destlen=sizeof(dest); 
   
-    char buf[1024];
+    void *buf=malloc(sizeof(struct icmphdr));
+    if (buf==NULL)
+    {
+        printf("Error allocating memory for buffer\n");
+        exit(1);
+    }
+
     struct sockaddr_in from;
     socklen_t fromlen=sizeof(sockaddr_in);
 
-    int max_hops=64;
     int ttl=1;
     hostent * temp;
     
 
-    printf("icmp echo sent to %s\n",argv[1]);
+    printf("\t Tracing route to %s \t max_hops = %d (default %d)\n",ip,max_hops,DEFAULT_MAX_HOPS);
     while(ttl<=max_hops)
     {
+        struct timeval timeout;
+        timeout.tv_sec=1;
+        timeout.tv_usec=0;
+
+        setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(timeout));
         setsockopt(sockfd,IPPROTO_IP,IP_TTL,&ttl,sizeof(ttl));
-        sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
         
-        if (recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen)!=-1)
+        time_t time_arr[TIMENUMS];
+        for(int k=0;k<3;k++)
         {
-            char * temp_ip=inet_ntoa(from.sin_addr);
-            char* domain=(char*)malloc(30*sizeof(char));
-            temp=gethostbyaddr(&from.sin_addr,sizeof(in_addr),AF_INET);
-            if(temp!=NULL)
-            {
-                domain=temp->h_name;
-            }
-            else
-            {
-                domain="unknown";
-            }
-            printf("recived reply from : %-16s domain : %-30s\n",temp_ip,domain);
+            struct timeval start,end;
+            gettimeofday(&start,NULL);
+            sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
+            recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen);
+         
+            gettimeofday(&end,NULL);
+            time_t time1=start.tv_sec*1000+start.tv_usec/1000;
+            time_t time2=end.tv_sec*1000+end.tv_usec/1000;
+            time_arr[k]=time2-time1;
         }
-        else
-        {
-            printf("Error reciving ICMP reply\n");
-        }
+
+        print_ip_domain(ttl,inet_ntoa(from.sin_addr),ICMP_RECEIVED,time_arr);
         ttl++;
         if(from.sin_addr.s_addr==dest.sin_addr.s_addr)
         {
@@ -78,22 +125,3 @@ int main(int argc, char *argv[])
 }
 
 
-unsigned short checksum(void *packet_header, int packet_len) {
-    unsigned short *buf = (unsigned short*)packet_header;
-    unsigned int sum = 0;
-
-    for (int i=0; i < packet_len/2; i++) 
-    {
-        sum += buf[i];
-    }
- 
-    if (packet_len % 2 == 1) 
-    {
-         sum += ((unsigned char*)buf)[packet_len-1];
-    }
-
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
- 
-    return (unsigned short)~sum;
-}
