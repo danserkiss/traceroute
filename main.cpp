@@ -4,10 +4,13 @@ int main(int argc, char *argv[])
 {
     int j,max_hops=DEFAULT_MAX_HOPS;
     char *domain_name,*ip=NULL;
-    while ((j=getopt(argc,argv,"d:i:m:"))!=-1)
+    while ((j=getopt(argc,argv,"d:i:m:h"))!=-1)
     {
         switch (j)
         {
+            case 'h':
+                print_help();
+                exit(1);
             case '?':
                 printf("unknown option\n");
                 exit(1);
@@ -47,7 +50,7 @@ int main(int argc, char *argv[])
     int sockfd = socket(AF_INET,SOCK_RAW,IPPROTO_ICMP);  
     if(sockfd==-1)
     {
-        printf("Failed creating socket \n");
+        printf("Failed creating RAW socket. Try execute program with sudo\n");
         exit(1);
     }
 

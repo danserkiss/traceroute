@@ -71,3 +71,13 @@ void print_ip_domain(int num,char *ip,int var,time_t *time_arr) {
         }
     }
 }
+
+void print_help()
+{
+    printf("Usage:\n my_traceroute [-m max_hops] [-i IP (Use IPv4)] [-d domain]\n");
+    printf("%-10s Show this help message\n","-h");
+    printf("%-10s Traceroute by IPv4 address\n","-i");
+    printf("%-10s Traceroute by domain\n","-d");
+    printf("%-10s Set MAX_HOPS\n","-m");
+
+}

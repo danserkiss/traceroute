@@ -1,1 +1,2 @@
 # traceroute
+It’s a Linux utility that accurately traces the route of packets from a source to a destination node across the network. It displays each hop along the way, showing the time taken for each segment of the route.
