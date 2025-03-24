@@ -107,15 +107,17 @@ int main(int argc, char *argv[])
             struct timeval start,end;
             gettimeofday(&start,NULL);
             sendto(sockfd,packet,sizeof(packet),0,(struct sockaddr *)&dest,destlen);
-            recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen);
-         
+            int recv_res=recvfrom(sockfd,buf,sizeof(buf),0,(struct sockaddr *)&from ,&fromlen);
+            if(recv_res==-1)
+            {time_arr[k]=-1;
+                continue;}
             gettimeofday(&end,NULL);
             time_t time1=start.tv_sec*1000+start.tv_usec/1000;
             time_t time2=end.tv_sec*1000+end.tv_usec/1000;
             time_arr[k]=time2-time1;
         }
 
-        print_ip_domain(ttl,inet_ntoa(from.sin_addr),ICMP_RECEIVED,time_arr);
+        print_ip_domain(ttl,inet_ntoa(from.sin_addr),time_arr);
         ttl++;
         if(from.sin_addr.s_addr==dest.sin_addr.s_addr)
         {

@@ -46,30 +46,18 @@ void print_time_delay(time_t *time_arr)
 } 
 
 
-void print_ip_domain(int num,char *ip,int var,time_t *time_arr) {
+void print_ip_domain(int num,char *ip,time_t *time_arr) {
     in_addr_t ip_addr = inet_addr(ip);
     hostent *domain_by_ip = gethostbyaddr((const void*)&ip_addr,sizeof(ip_addr),AF_INET);
-    
-    if (var==ICMP_RECEIVED)
-    {
+    const char* unk_domain="unknown";
         if(domain_by_ip==NULL){
-            printf("%-3d %-16s domain : %-40s \t",num,ip,"unknown");
+            printf("%-3d %-16s domain : %-40s \t",num,ip,unk_domain);
             print_time_delay(time_arr);
         }
         else{
             printf("%-3d %-16s domain : %-40s \t",num,ip,domain_by_ip->h_name);
             print_time_delay(time_arr);
         }
-    }
-    else
-    {    
-        if(domain_by_ip==NULL){
-        printf("%-3d %-16s domain : unknown\n",num,ip);
-        }
-        else{
-        printf("%-3d : %-16s domain : %-40s \n",num,ip,domain_by_ip->h_name);
-        }
-    }
 }
 
 void print_help()
