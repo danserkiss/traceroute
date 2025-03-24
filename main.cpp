@@ -125,6 +125,9 @@ int main(int argc, char *argv[])
         }
    
     }
+    
+    free(packet);
+    free(buf);
     close(sockfd);
     return 0;
 }
