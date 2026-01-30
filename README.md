@@ -2,7 +2,7 @@
 This is a Linux utility that accurately traces the route of packets from a source to a destination node across the network. It displays each hop along the way and shows the round-trip time (RTT) for each segment of the route.
 
 Installation: 
-1. git clone <repository_url>
+1. git clone https://github.com/danserkiss/traceroute
 2. cd traceroute
 3. sudo make
 
